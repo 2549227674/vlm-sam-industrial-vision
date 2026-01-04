@@ -1,0 +1,40 @@
+{
+  "workflow_version": "1.2.0",
+  "timestamps": {
+    "started": "2026-01-03T10:45:00Z",
+    "last_updated": "2026-01-03T10:50:00Z"
+  },
+  "mode": "initial_scan",
+  "scan_level": "deep",
+  "project_root": "C:\\Users\\Han\\PycharmProjects\\PythonProject8",
+  "output_folder": "C:\\Users\\Han\\PycharmProjects\\PythonProject8\\docs",
+  "completed_steps": [
+    {
+      "step": "step_1",
+      "status": "completed",
+      "timestamp": "2026-01-03T10:50:00Z",
+      "summary": "Classified as monolith with 1 part: Data/ML project"
+    },
+    {
+      "step": "step_2",
+      "status": "completed",
+      "timestamp": "2026-01-03T10:55:00Z",
+      "summary": "Found 3 existing docs, captured user context for edge-cloud upgrade"
+    }
+  ],
+  "current_step": "step_3",
+  "findings": {
+    "project_classification": "Monolith, 1 part, Python/Streamlit ML application",
+    "user_context": "Edge-Cloud collaborative industrial vision system: Upgrade PC-based CV app to distributed architecture with i.MX6ULL edge node (video capture + pan-tilt control via PCA9685 I2C) and PC cloud node (VLM/SAM inference). Scope: I2C driver, Socket communication, video stream integration"
+  },
+  "project_types": [
+    {
+      "part_id": "main",
+      "project_type_id": "data",
+      "display_name": "SAM-3 Computer Vision System",
+      "root_path": "计算机视觉项目"
+    }
+  ],
+  "outputs_generated": ["project-scan-report.json"],
+  "resume_instructions": "Continue from step 2"
+}
