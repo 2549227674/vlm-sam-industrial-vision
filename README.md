@@ -1,89 +1,6 @@
-# ====================
-# 数据集（不上传）
-# ====================
-D070*/
-*轴承*
-*木材*
-*芯片*
-VisA*/
+# 工业视觉 AI 分析系统 | 多模态协同检测与高并发监控平台
 
-# ====================
-# 模型权重（不上传）
-# ====================
-*.pt
-*.pth
-runs/
-
-# ====================
-# Python 运行时
-# ====================
-__pycache__/
-*.py[cod]
-*.egg-info/
-dist/
-build/
-.venv/
-venv/
-.env
-
-# ====================
-# IDE / 编辑器
-# ====================
-.idea/
-.vscode/
-*.iml
-*.iws
-
-# ====================
-# 缓存 / 日志
-# ====================
-*.log
-.pytest_cache/
-.mypy_cache/
-.cache/
-.docker_cache/
-
-# ====================
-# 临时 / 备份文件
-# ====================
-*.zip
-*.tar.gz
-*.tar
-*.rar
-*.7z
-*.jpg
-*.jpeg
-*.png
-!docs/**/*.png
-
-# ====================
-# 系统文件
-# ====================
-.DS_Store
-Thumbs.db
-
-# ====================
-# 本地文档/简历/分析
-# ====================
-简历.md
-简历*.md
-*分析报告*.md
-*Agent框架*.md
-BMAD*
-项目完整结构*.md
-真相大白*.md
-问题已*.md
-各训练参数*.md
-答辩分工*.md
-改进*.md
-```
-
-现在来起草 README。
-<minimax:tool_call>
-<invoke name="Write">
-<parameter name="content"># 工业视觉 AI 分析系统 | 多模态协同检测与高并发监控平台
-
-> 基于 Qwen-VL、SAM-3、YOLOv8 的工业缺陷检测系统，支持五大范式与多生产线并发监控。
+> 基于 Qwen-VL、SAM-3、YOLOv8 的工业缺陷检测系统，实现五范式架构与多生产线并发监控。面向轴承/木材/芯片工业生产线的视觉检测场景。
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.1+-red.svg)](https://pytorch.org/)
@@ -93,250 +10,482 @@ BMAD*
 
 ## 一、项目概述
 
-本项目针对工业制造场景的缺陷检测需求，设计并实现了一套**五范式工业视觉 AI 分析平台**，涵盖从在线语义探索到离线异常检测、从精准分割导出到实时流检测、从视频跟踪的全链路能力。
+### 1.1 解决了什么问题
 
-### 核心技术亮点
+工业视觉检测长期面临三个核心矛盾：
 
-| 维度 | 技术实现 |
-|------|---------|
-| **多模态大模型** | Qwen-VL/QVQ + 600+ 行 bbox 结构化解析管道，五级坐标验证 + 启发式降级重试 |
-| **开放词汇分割** | SAM-3（图像 + 视频）本地推理，零 API 边际成本，支持文本/框/点三种提示模式 |
-| **轻量级检测** | YOLOv8n 定制训练，mAP50 达 **87.8%**（木材）/ **72.5%**（轴承），8 类缺陷识别 |
-| **无监督异常** | PaDiM（ResNet-18 特征 + 马氏距离），产线冷启动无需标注数据 |
-| **高并发监控** | 1-6 条生产线共享 YOLO 单例并发推理，NVML GPU 真实监控 |
-| **边缘协同** | C++ ARM Linux SDK，TCP 防粘包协议 + MJPEG 双通道推流 |
+1. **泛化 vs 精度**：单一模型无法覆盖多行业、多材质、多缺陷类型
+2. **云端 vs 边缘**：大模型精度高但依赖 API、延迟高；小模型速度快但泛化差
+3. **精度 vs 成本**：高质量标注数据获取成本极高，冷启动产线无历史样本
 
----
+本项目设计**五范式架构**覆盖从零样本探索到批量生产的全生命周期，并实现**三层检测体系**协调大模型与小模型各自优势。
 
-## 二、技术架构
+### 1.2 核心技术指标
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    L1 认知层 · VLM 数据流控                          │
-│  ┌─────────────┐     ┌─────────────┐     ┌─────────────────────────┐│
-│  │ 强制 JSON   │     │ 五级 bbox   │     │  启发式降级重试          ││
-│  │ Schema 约束 │ ──► │ 净化管道    │ ──► │  turbo → max 模型降级   ││
-│  │ 600+ 行     │     │ 类型→值→排序│     │  区分失败与真无缺陷     ││
-│  └─────────────┘     │ →裁剪→面积  │     └─────────────────────────┘│
-│                      └─────────────┘                                  │
-│                              │                                        │
-│                     VLM bbox → SAM3 精修 → YOLO 数据集导出            │
-├──────────────────────────────┼──────────────────────────────────────┤
-│                    L2 算法层 · 本地中小模型                            │
-│  ┌──────────────────┐    ┌──────────────────┐                       │
-│  │ PaDiM 异常检测    │    │ YOLOv8n 定制训练  │                       │
-│  │ ResNet-18 特征    │    │ mAP50: 87.8%      │                       │
-│  │ 马氏距离热力图    │    │ RTX 4060 优化      │                       │
-│  │ 无监督，冷启动    │    │ AMP+batch=8        │                       │
-│  └──────────────────┘    └──────────────────┘                       │
-│           │                        │                                 │
-│           ▼                        ▼                                 │
-│  ┌──────────────────────────────────────────────────────────────┐   │
-│  │            SAM-3 图像分割 & SAM-3 Video 视频跟踪              │   │
-│  │  文本/框/点提示 · object_ids 跨帧跟踪 · 本地推理零成本         │   │
-│  └──────────────────────────────────────────────────────────────┘   │
-├──────────────────────────────────────────────────────────────────────┤
-│               L3 部署层 · 高并发监控与边缘协同                          │
-│  ┌──────────────────┐    ┌──────────────────┐    ┌────────────────┐ │
-│  │ SharedModelMgr   │    │ GPUMonitor       │    │ C++ 边缘 SDK    │ │
-│  │ 单例模式          │    │ NVML 真实监控    │    │ ARM Linux      │ │
-│  │ 1-6 线共享 YOLO  │    │ 显存/温度/利用率  │    │ TCP+MJPEG      │ │
-│  │ threading.Lock   │    │ OOM 规避          │    │ 防粘包协议      │ │
-│  └──────────────────┘    └──────────────────┘    └────────────────┘ │
-└──────────────────────────────────────────────────────────────────────┘
-                              │
-                    ┌─────────┴──────────┐
-                    │   Streamlit Web   │
-                    │   五范式路由入口   │
-                    └──────────────────┘
-```
-
-### 五大范式
-
-| 范式 | 名称 | 核心技术 | 典型场景 |
-|------|------|---------|---------|
-| **A** | 在线语义探索 | VLM + SAM-3 零样本分割 | 输入关键词即可分割任意缺陷类型 |
-| **B** | 离线异常检测 | PaDiM + ResNet-18 | 产线冷启动，无监督排障 |
-| **C** | 精准分割导出 | VLM bbox → SAM3 精修 → YOLO 格式 | 自动化标注流水线 |
-| **D** | 实时流检测 | YOLOv8 + Socket/MJPEG | 边缘设备实时推理 |
-| **E** | 视频跟踪检测 | SAM-3 Video object_ids | 批量视频缺陷跟踪 |
+| 指标 | 数值 | 说明 |
+|------|------|------|
+| VLM bbox 解析管道 | 600+ 行 | `core/vlm_bbox.py`，含五级验证 |
+| VLM 支持模型数 | 8 种 | `core/vlm_model_registry.py` |
+| YOLOv8 轴承线 mAP50 | **72.5%** | 8 类缺陷，2561 张，RTX 4060 |
+| YOLOv8 木材线 mAP50 | **87.8%** | 8 类缺陷，4000 张 |
+| 多线并发规模 | **1-6 条** | `SharedModelManager` 单例模式 |
+| GPU 监控指标 | 4 项 | NVML：显存/利用率/温度/功耗 |
+| C++ SDK 帧协议 | 2 种 | TCP 防粘包 + MJPEG 双通道 |
+| 缺陷行业模板 | 5 类 | 金属/PCB/纺织/食品/通用（YAML 热插拔）|
 
 ---
 
-## 三、核心模块说明
+## 二、系统架构
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '12px'}}}%%
+graph TB
+    subgraph "L3 部署层 · 边缘与并发"
+        SMM["SharedModelManager<br/>threading.Lock 单例<br/>1-6 线共享 YOLO"]
+        GPU["GPUMonitor<br/>NVML 真实监控<br/>显存/利用率/温度/功耗"]
+        CPP["C++ 边缘 SDK<br/>ARM Linux 交叉编译<br/>TCP + MJPEG 双协议"]
+        MJS["MJPEG Server<br/>multipart/x-mixed-replace<br/>~30 FPS 实时流"]
+    end
+
+    subgraph "L2 算法层 · 本地中小模型"
+        YOLO["YOLOv8n 定制训练<br/>mAP50: 87.8% / 72.5%<br/>AMP + batch=8"]
+        PAD["PaDiM 异常检测<br/>ResNet-18 Layer3<br/>马氏距离热力图"]
+        SAM3["SAM-3 分割<br/>文本/框/点提示<br/>bf16/fp32 自适应"]
+        VID["SAM-3 Video<br/>object_ids 跨帧跟踪<br/>零 API 成本"]
+    end
+
+    subgraph "L1 认知层 · VLM 数据流控"
+        JSON["强制 JSON Schema<br/>Return JSON ONLY<br/>精确 schema 约束"]
+        FIVE["五级 bbox 净化<br/>类型→值→排序→裁剪→面积"]
+        FALL["启发式降级重试<br/>_should_fallback()<br/>turbo→max 一次"]
+        REG["VLM 模型注册表<br/>8 种模型<br/>按能力过滤路由"]
+        QVQ["QVQ 流式双通道<br/>reasoning + answer<br/>800-2200 字符思考"]
+    end
+
+    subgraph "五范式 UI 层（Streamlit）"
+        PA["范式 A<br/>在线语义探索"]
+        PB["范式 B<br/>离线异常检测"]
+        PC["范式 C<br/>精准分割导出"]
+        PD["范式 D<br/>实时流检测"]
+        PE["范式 E<br/>视频跟踪"]
+    end
+
+    PA & PB & PC & PD & PE --> adapters["adapters.py<br/>统一接口封装"]
+    adapters --> JSON
+    JSON --> FIVE --> FALL
+    FALL --> REG
+    adapters --> SAM3
+    adapters --> YOLO
+    adapters --> PAD
+    adapters --> VID
+    YOLO --> SMM
+    SMM --> GPU
+    adapters --> CPP
+    CPP --> MJS
+
+    style JSON fill:#5f27cd,color:#fff
+    style FIVE fill:#ff6b6b,color:#fff
+    style FALL fill:#ff9f43,color:#fff
+    style PAD fill:#1dd1a1,color:#fff
+    style YOLO fill:#1dd1a1,color:#fff
+    style SMM fill:#54a0ff,color:#fff
+    style GPU fill:#54a0ff,color:#fff
+```
+
+### 2.1 数据流图
+
+```mermaid
+flowchart LR
+    subgraph "VLM bbox 管道"
+        RAW["VLM raw_text"]
+        JSONP["强制 JSON<br/>Schema Prompt"]
+        JSONP -->|"json.loads"| PARSE["JSON 解析"]
+        PARSE -->|"失败"| FALL{_should_fallback?<br/>关键词检测}
+        FALL -->|"是"| RETRY["turbo→max<br/>重试一次"]
+        RETRY --> RAW
+        PARSE -->|"成功"| FIVE["五级净化管道"]
+        FIVE --> OUT["VlmBBoxOutput<br/>dataclass"]
+    end
+
+    subgraph "范式 C 流水线"
+        OUT -->|"bbox"| SAM3["SAM-3 精分割"]
+        SAM3 --> MASK["MaskGroup<br/>masks + scores"]
+        MASK -->|"xyxy→xywh"| EXP["YOLOv8 导出"]
+        EXP -->|"images/+labels/"| DATA["YOLO 数据集"]
+    end
+
+    FALL -->|"否：真无缺陷"| EMPTY["detections=[]<br/>返回空列表"]
+```
+
+### 2.2 多线并发架构
+
+```mermaid
+flowchart TD
+    subgraph "MultiBearingMonitor"
+        YAML["configs/multi_bearing/*.yaml"]
+        SMM["SharedModelManager<br/>单例 + threading.Lock<br/>YOLO 一次加载"]
+        GPU["GPUMonitor<br/>NVML 单例"]
+    end
+
+    YAML --> SMM & GPU
+
+    subgraph "BearingProductionLine × N"
+        L1["Thread #1<br/>keyframe_interval=8<br/>跳帧推理 87.5%"]
+        L2["Thread #2<br/>共享 model.predict()"]
+        LN["Thread #N"]
+    end
+
+    SMM -->|"torch.no_grad()"| L1 & L2 & LN
+    L1 & L2 & LN -->|"NVML"| GPU
+
+    style SMM fill:#54a0ff,color:#fff
+    style GPU fill:#ff6b6b,color:#fff
+```
+
+---
+
+## 三、核心模块详解
 
 ### 3.1 VLM bbox 结构化解析管道
 
-**文件**: `core/vlm_bbox.py`（600+ 行）
+**文件**: [`core/vlm_bbox.py`](计算机视觉项目/core/vlm_bbox.py)（600+ 行）
+
+VLM 输出的不可控性是工业落地的主要痛点。本模块从零构建了完整的解析与验证管道：
 
 ```python
-# 五级 bbox 净化管道
-def _sanitize_bbox_xyxy(b, *, w, h):
-    # L1: 类型验证
-    if not isinstance(b, (list, tuple)) or len(b) != 4: return None
-    # L2: 值转换验证（三重强制转换）
-    x1, y1, x2, y2 = [int(round(float(x))) for x in b]
-    # L3: 坐标排序（x1<x2, y1<y2）
-    x1, x2 = sorted([x1, x2]); y1, y2 = sorted([y1, y2])
-    # L4: 边界裁剪
-    x1, y1 = _clamp(x1, 0, w-1), _clamp(y1, 0, h-1)
-    x2, y2 = _clamp(x2, 0, w), _clamp(y2, 0, h)
-    # L5: 面积保障（宽高至少 1 像素）
-    if x2 <= x1: x2 = min(w, x1+1)
-    if y2 <= y1: y2 = min(h, y1+1)
+# 五级 bbox 净化管道（vlm_bbox.py:86-115）
+def _sanitize_bbox_xyxy(b: Any, *, w: int, h: int) -> Optional[list[int]]:
+    # L1: 类型验证 — 必须是长度为 4 的 list/tuple
+    if not isinstance(b, (list, tuple)) or len(b) != 4:
+        return None
+    # L2: 值转换验证 — 三重强制转换 int(round(float(x)))
+    try:
+        x1, y1, x2, y2 = [int(round(float(x))) for x in b]
+    except Exception:
+        return None
+    # L3: 坐标排序 — 自动修正 x1>x2 或 y1>y2 的错误
+    x1, x2 = sorted([x1, x2])
+    y1, y2 = sorted([y1, y2])
+    # L4: 边界裁剪 — clamp 到 [0, w)×[0, h)
+    x1 = _clamp(x1, 0, max(0, w - 1))
+    y1 = _clamp(y1, 0, max(0, h - 1))
+    x2 = _clamp(x2, 0, w)
+    y2 = _clamp(y2, 0, h)
+    # L5: 面积保障 — 宽高至少 1 像素
+    if x2 <= x1: x2 = min(w, x1 + 1)
+    if y2 <= y1: y2 = min(h, y1 + 1)
     return [int(x1), int(y1), int(x2), int(y2)]
 ```
 
-**启发式降级决策**:
+**强制 JSON Schema Prompt**（vlm_bbox.py:230-282）：
+
+```
+Return JSON ONLY. Do NOT output markdown. Do NOT output any extra text outside JSON.
+Use this JSON schema exactly:
+{"image_width": <int>, "image_height": <int>,
+ "detections": [{"defect_type": <string>, "anomaly_subtype": <string>,
+  "bbox_xyxy": [<int>,<int>,<int>,<int>], "confidence": <float>}]}
+```
+
+**启发式降级决策**（vlm_bbox.py:340-366）：
+
 ```python
-def _should_fallback(out):
-    # 关键词检测区分"真无缺陷"与"解析失败"
-    suspicious = ["error", "exception", "http", "failed", "invalid"]
+def _should_fallback(out: VlmBBoxOutput) -> bool:
+    if out.detections: return False          # 有结果，无需回退
+    raw = (out.raw_text or "").strip().lower()
+    if not raw: return False                 # 空文本+空检测 = 真无缺陷
+    # 关键词检测：区分"解析失败"与"真无缺陷"
+    suspicious = ["error", "exception", "traceback", "http", "failed", "invalid", "timeout"]
     if any(s in raw for s in suspicious): return True
-    if "{" not in raw: return True  # 无 JSON 结构
+    if "{" not in raw: return True           # 无 JSON 结构 = 解析失败
     return False
 ```
 
-### 3.2 PaDiM 异常检测
-
-**文件**: `core/padim.py` + `core/feature_extractor.py`
-
-```
-正常样本 → ResNet-18 Layer3 特征 [256, 16, 16] → PaDiM 统计量（均值 + 协方差逆）
-新样本测试 → 马氏距离热力图 → 异常区域定位
-```
-
-### 3.3 多轴承并发监控系统
-
-**文件**: `bearing_core/multi_bearing_monitor.py`（687 行）
+**QVQ 流式双通道分离**（[`core/dashscope_stream.py`](计算机视觉项目/core/dashscope_stream.py):60-113）：
 
 ```python
-class SharedModelManager:
-    """共享 YOLO 单例，1-6 条产线并发复用同一模型实例"""
-    def __new__(cls, model_path, device='cuda:0'):
-        # threading.Lock 保证线程安全
-        ...
+# QVQ 模型原生输出两个字段：reasoning_content（思考过程）+ content（最终回答）
+reasoning_content = ""   # 通道1：推理过程，约 800-2200 字符
+answer_content = ""      # 通道2：最终 JSON 答案
 
-class GPUMonitor:
-    """NVML 真实 GPU 监控：显存 / 利用率 / 温度 / 功耗"""
-    def get_gpu_stats(self):
-        mem_info = pynvml.nvmlDeviceGetMemoryInfo(self._handle)
-        ...
-```
-
-### 3.4 C++ 边缘 SDK
-
-**文件**: `edge_device/src/`
-
-```
-TCP 防粘包帧协议:
-  magic(4B) + jpeg_len(4B) + jpeg_data(NB)
-  magic = 0xABCD1234，ARM 小端序匹配
-
-MJPEG 视频流:
-  HTTP Multipart/x-mixed-replace，~30 FPS 实时推流
+for chunk in response:
+    reasoning_chunk = message.get("reasoning_content", None)
+    if reasoning_chunk:
+        reasoning_content += reasoning_chunk  # 聚合思考过程
+    if message.content:
+        for item in message.content:
+            if isinstance(item, dict) and "text" in item:
+                answer_content += item["text"]  # 聚合最终答案
 ```
 
 ---
 
-## 四、快速开始
+### 3.2 PaDiM 异常检测
 
-### 环境依赖
+**文件**: [`core/padim.py`](计算机视觉项目/core/padim.py)（统计量）+ [`core/feature_extractor.py`](计算机视觉项目/core/feature_extractor.py)（特征提取）
+
+PaDiM 解决产线冷启动问题：无需缺陷样本，仅需正常样本构建统计模型。
+
+```
+正常样本 N 张
+    │
+    ▼
+ResNet-18 Layer3 提取特征 [B, 256, 16, 16]
+    │
+    ▼
+PaDiM 统计量构建
+    ├── means[p]   = E[Xᵢ]           第 p 个位置的均值向量
+    └── inv_covs[p] = 1 / (Var[Xᵢ] + ε)  对角协方差逆
+    │
+    ▼
+保存 .npz 模型文件
+    │
+    ▼ 新样本推理
+马氏距离图 D = √(Σ (xᵢ-μᵢ)² × 1/σᵢ²)
+    │
+    ▼
+异常热力图（高距离 = 异常）
+```
+
+对角协方差近似将 256×256 矩阵简化为 256 维向量，计算量降低约 **500 倍**。
+
+---
+
+### 3.3 SAM-3 实例分割
+
+**文件**: [`core/sam3_infer.py`](计算机视觉项目/core/sam3_infer.py)
+
+支持三种提示模式，文本提示提供两种合并策略：
+
+```python
+# per_prompt（推荐）：逐词推理并合并，稳定性最高
+# join_string：多词拼接成一句，一次推理，速度更快
+
+def merge_instance_results(result_list):
+    """合并多个 SAM-3 分割结果"""
+    masks_all = [r["masks"] for r in result_list if r.get("masks") is not None]
+    scores_all = [r["scores"].float() for r in result_list if r.get("scores") is not None]
+    return {
+        "masks": torch.cat(masks_all, dim=0) if masks_all else torch.empty((0, 1, 1)),
+        "scores": torch.cat(scores_all, dim=0) if scores_all else torch.empty((0,))
+    }
+```
+
+动态 dtype 策略：检测 GPU 是否支持 bf16（Ampere+ 架构，如 RTX 3060/4060），不支持则降级 float32。
+
+---
+
+### 3.4 多轴承并发监控系统
+
+**文件**: [`bearing_core/multi_bearing_monitor.py`](bearing_core/multi_bearing_monitor.py)（687 行）
+
+两个核心单例类：
+
+```python
+class SharedModelManager:
+    """共享 YOLO 单例 — 避免显存爆炸"""
+    _instance = None
+    _lock = threading.Lock()
+
+    def __new__(cls, model_path, device='cuda:0'):
+        if cls._instance is None:
+            with cls._lock:  # 双重检查锁定
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
+                    cls._instance._init_model(model_path, device)
+        return cls._instance
+
+    def _init_model(self, model_path, device):
+        self.model = YOLO(model_path).to(device)
+        if hasattr(self.model.model, 'share_memory'):
+            self.model.model.share_memory()  # PyTorch 共享内存
+```
+
+```python
+class GPUMonitor:
+    """NVML 真实 GPU 监控 — 不只是 PyTorch 估算"""
+    _instance = None
+
+    def get_gpu_stats(self):
+        mem_info = pynvml.nvmlDeviceGetMemoryInfo(self._handle)
+        util = pynvml.nvmlDeviceGetUtilizationRates(self._handle)
+        temp = pynvml.nvmlDeviceGetTemperature(self._handle, NVML_TEMPERATURE_GPU)
+        power = pynvml.nvmlDeviceGetPowerUsage(self._handle) / 1000  # mW → W
+        # PyTorch 降级：仅能获取显存，无法获取利用率/温度/功耗
+```
+
+关键帧跳帧策略：`keyframe_interval=8` 意味着每 8 帧检测一次，其余 7 帧复用最近检测结果，**推理频率降低 87.5%**，同时保持视觉效果连续性（`detection_display_frames=45` 帧内持续显示检测框）。
+
+---
+
+### 3.5 C++ 边缘 SDK
+
+**文件**: [`edge_device/src/`](计算机视觉项目/edge_device/src/)
+
+TCP 帧协议防粘包设计（[`core/socket_server.py`](计算机视觉项目/core/socket_server.py):12-16）：
+
+```
+帧结构（8 字节头 + 可变长数据）：
+┌──────────┬──────────┬─────────────────────┐
+│ magic    │ jpeg_len │ jpeg_data           │
+│ 0xABCD1234│ 4 字节   │ 最大 512KB          │
+└──────────┴──────────┴─────────────────────┘
+```
+
+服务端重同步机制：当 magic 不匹配时，在缓冲区中向后搜索下一个 magic 字节序列，避免单帧损坏导致整个连接失效。
+
+---
+
+### 3.6 VLM 模型注册表
+
+**文件**: [`core/vlm_model_registry.py`](计算机视觉项目/core/vlm_model_registry.py)（162 行）
+
+```python
+@dataclass(frozen=True)
+class VlmModelSpec:
+    name: str
+    supports_bbox_json: bool = True
+    json_reliability: str = "medium"   # high / medium / low / unknown
+    cost_tier: str = "medium"         # high / medium / low
+    requires_stream: bool = False      # QVQ 系列标志
+
+_REGISTRY = (
+    VlmModelSpec("qwen-vl-max",       json_reliability="high",  cost_tier="high"),
+    VlmModelSpec("qvq-max",           requires_stream=True,      json_reliability="high"),
+    VlmModelSpec("qvq-plus",          requires_stream=True,      json_reliability="high"),
+    VlmModelSpec("qwen3-vl-plus",     json_reliability="high",  cost_tier="high"),
+    VlmModelSpec("qwen3-vl-flash",    json_reliability="medium", cost_tier="low"),
+    # ... 共 8 种模型，按能力静态过滤
+)
+```
+
+---
+
+## 四、五大范式
+
+| 范式 | 名称 | 核心技术链路 | 典型场景 |
+|------|------|------------|---------|
+| **A** | 在线语义探索 | VLM 关键词 → SAM-3 零样本分割 | 输入"划痕"即可分割，零样本冷启动 |
+| **B** | 离线异常检测 | 正常样本 → PaDiM 统计量 → 马氏距离热力图 | 产线冷启动，无需任何标注数据 |
+| **C** | 精准分割导出 | VLM bbox → SAM-3 精修 → xyxy→xywh → YOLO 格式 | 构建自己的训练数据集 |
+| **D** | 实时流检测 | 边缘设备 → Socket/MJPEG → YOLO 推理 → 实时看板 | 生产线 24h 连续监控 |
+| **E** | 视频跟踪检测 | SAM-3 Video object_ids → 跨帧实例跟踪 | 批量视频缺陷统计，无需逐帧调用 API |
+
+---
+
+## 五、快速开始
+
+### 5.1 环境准备
 
 ```bash
-# Python >= 3.10
-# CUDA >= 11.8（GPU 推理必需）
-
+# Python >= 3.10，CUDA >= 11.8
 pip install -r requirements.txt
 ```
 
-### 模型下载（ModelScope）
+SAM-3 模型首次运行自动从 ModelScope 下载（`facebook/sam3`）。
 
-SAM-3 模型首次运行自动从 ModelScope 下载，无需手动操作。
-
-### 启动五范式系统
+### 5.2 启动五范式系统
 
 ```bash
 cd 计算机视觉项目
 streamlit run app_final.py
+# 浏览器打开 http://localhost:8501
 ```
 
-浏览器打开 `http://localhost:8501`，左侧选择范式（A/B/C/D/E）。
-
-### 启动多轴承监控
+### 5.3 启动多轴承监控
 
 ```bash
 python start_multi_bearing_monitor.py
+# 按提示选择生产线数量（1-6）
+```
+
+### 5.4 训练自定义 YOLO 模型
+
+```bash
+python train_production_lines.py
+# 菜单：1=全部 / 2=轴承 / 3=木材 / 4=芯片
 ```
 
 ---
 
-## 五、文件结构
+## 六、文件结构
 
 ```
 .
-├── app_final.py                     # Streamlit 入口（五范式路由）
+├── app_final.py                          # Streamlit 入口（五范式路由）
 │
-├── core/                            # 核心算法层（24+ 模块）
-│   ├── vlm_bbox.py                  # VLM bbox 解析（600+ 行，五级验证）
-│   ├── vlm_model_registry.py        # VLM 模型注册表（8 种模型）
-│   ├── dashscope_stream.py          # QVQ 流式双通道聚合
-│   ├── sam3_infer.py                # SAM-3 实例分割
-│   ├── sam3_video_detector.py       # SAM-3 视频跟踪
-│   ├── padim.py                     # PaDiM 异常检测
-│   ├── feature_extractor.py         # ResNet-18 特征提取
-│   ├── yolov8_export.py            # YOLO 数据集导出
-│   ├── defect_config.py             # 缺陷类别配置（5 类行业模板）
-│   ├── socket_server.py            # TCP Socket（防粘包协议）
-│   └── mjpeg_server.py             # MJPEG 流媒体服务
+├── 计算机视觉项目/
+│   ├── core/                            # 核心算法层（25 个模块）
+│   │   ├── vlm_bbox.py                 # VLM bbox 解析（600+ 行，五级验证）
+│   │   ├── vlm_model_registry.py        # VLM 模型注册表（8 种模型）
+│   │   ├── dashscope_stream.py          # QVQ 流式双通道聚合
+│   │   ├── sam3_infer.py                # SAM-3 实例分割（文本/框/点）
+│   │   ├── sam3_video_detector.py       # SAM-3 Video 跨帧跟踪
+│   │   ├── padim.py                     # PaDiM 统计量（均值+协方差逆）
+│   │   ├── feature_extractor.py         # ResNet-18 Layer3 特征提取
+│   │   ├── yolov8_export.py             # YOLO 数据集导出
+│   │   ├── defect_config.py             # 缺陷类别配置（5 类行业模板）
+│   │   ├── socket_server.py            # TCP 防粘包帧协议
+│   │   └── mjpeg_server.py             # MJPEG HTTP 流服务
+│   │
+│   ├── ui/                              # 界面层（17 个模块）
+│   │   ├── paradigm_a.py ~ paradigm_e.py # 五大范式界面
+│   │   ├── monitoring.py                 # 工业监控看板
+│   │   ├── adapters.py                  # core/ui 解耦适配器
+│   │   └── ...
+│   │
+│   └── edge_device/                     # C++ 边缘 SDK
+│       ├── src/
+│       │   ├── video_capture.cpp       # V4L2 视频采集
+│       │   ├── socket_client.cpp       # TCP 帧发送
+│       │   └── protocol.h              # 0xABCD1234 帧协议
+│       └── cross_compile.sh             # ARM Linux 交叉编译
 │
-├── ui/                              # 界面层（15+ 组件）
-│   ├── paradigm_a.py ~ paradigm_e.py # 五大范式界面
-│   ├── monitoring.py                # 工业监控看板
-│   └── adapters.py                  # 适配器层
+├── bearing_core/
+│   └── multi_bearing_monitor.py        # 687行：SharedModelManager + GPUMonitor
 │
-├── bearing_core/                    # 多轴承监控系统
-│   └── multi_bearing_monitor.py    # 共享模型 + GPU 监控
+├── configs/                              # YAML 配置驱动
+│   ├── train_yolo_n_rtx4060.yaml       # YOLO 训练（batch=8, AMP）
+│   ├── pipeline_rtx4060.yaml
+│   ├── multi_bearing/                   # 1-6 条生产线配置
+│   └── defect_presets/                  # 5 类行业缺陷模板
 │
-├── edge_device/                    # C++ 边缘 SDK
-│   └── src/                        # TCP Socket + 视频采集
-│
-├── configs/                        # YAML 配置
-│   ├── train_yolo_n_rtx4060.yaml   # YOLO 训练配置
-│   ├── multi_bearing/              # 1-6 条生产线配置
-│   └── defect_presets/            # 5 类行业缺陷预设
-│
-├── train_production_lines.py        # 三线 YOLO 训练脚本
-├── start_multi_bearing_monitor.py  # 多轴承监控启动器
+├── train_production_lines.py              # 三线 YOLO 训练脚本
+├── start_multi_bearing_monitor.py        # 多轴承监控启动器
 │
 └── docs/
-    ├── ARCHITECTURE.md             # 系统架构详解
-    └── TRAINING.md                 # 训练说明
+    ├── architecture.md                  # 系统架构详解
+    └── TRAINING.md                       # 训练说明
 ```
 
 ---
 
-## 六、技术栈
+## 七、技术栈
 
 | 类别 | 技术 |
 |------|------|
-| **框架** | Streamlit, PyTorch, Ultralytics YOLOv8, Transformers |
-| **多模态大模型** | Qwen-VL, QVQ（阿里云 DashScope API） |
-| **分割模型** | SAM-3（Meta，开源），PaDiM |
-| **特征提取** | ResNet-18（PyTorch torchvision） |
-| **边缘开发** | C++（ARM Linux 交叉编译），TCP Socket，MJPEG |
-| **GPU 监控** | NVML（pynvml） |
+| **Web 框架** | Streamlit 1.31+ |
+| **深度学习** | PyTorch 2.1+, torchvision, Ultralytics YOLOv8 |
+| **分割模型** | SAM-3（Meta，`facebook/sam3` via ModelScope） |
+| **多模态大模型** | Qwen-VL / QVQ（阿里云 DashScope API） |
+| **异常检测** | PaDiM（ResNet-18 Layer3 特征 + 马氏距离） |
+| **边缘开发** | C++（ARM Linux 交叉编译），V4L2，TCP Socket |
+| **流媒体** | MJPEG multipart/x-mixed-replace |
+| **GPU 监控** | NVML（pynvml）|
 | **配置管理** | YAML（PyYAML） |
 
 ---
 
-## 七、参考资料
+## 八、参考资料
 
-- SAM-3: `facebook/sam3`（ModelScope）
-- YOLOv8: [Ultralytics](https://github.com/ultralytics/ultralytics)
-- Qwen-VL: [阿里云 DashScope](https://help.aliyun.com/zh/dashscope/)
-- PaDiM: *PaDiM: a Patch Distribution Modeling Framework for Anomaly Detection* ([arxiv](https://arxiv.org/abs/2011.08785))
+| 资料 | 链接 |
+|------|------|
+| SAM-3 | [ModelScope: facebook/sam3](https://www.modelscope.cn/models/AI-ModelScope/sam3) |
+| YOLOv8 | [Ultralytics GitHub](https://github.com/ultralytics/ultralytics) |
+| Qwen-VL | [阿里云 DashScope](https://help.aliyun.com/zh/dashscope/) |
+| PaDiM 论文 | [arXiv:2011.08785](https://arxiv.org/abs/2011.08785) |
+| Streamlit | [streamlit.io](https://streamlit.io/) |
 
 ---
 
-*本项目为课程设计作品，数据集来源于公开数据集。*
+*数据集来源于公开数据集（Kaggle / MVTec / VisA）。本项目为课程设计作品。*
