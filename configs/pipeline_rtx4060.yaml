@@ -1,0 +1,136 @@
+# RTX 4060 8GB 专用配置文件
+# 优化目标：6 条生产线 @ 20 FPS，显存占用 < 6GB
+
+# ==================== 核心参数 ====================
+num_workers: 3              # YOLO worker 数量（推荐 3 个）
+device: cuda                # GPU 设备
+keyframe_interval: 12       # 关键帧间隔（每 12 帧检测一次，其余跟踪）
+yolo_threshold: 0.35        # YOLO 置信度阈值（略高减少误检）
+clip_batch_size: 14         # CLIP 批量大小（14-16 最优）
+
+# ==================== 模型路径 ====================
+yolo_model: weights/finetuned/yolov8n-seg-defect.pt  # 必须使用 YOLOv8n（轻量）
+clip_config: configs/clip_labels.yaml
+clip_model: ViT-B-32        # OpenCLIP 模型
+
+# ==================== 视频源配置 ====================
+# 推荐 6 条产线（保守可用 4 条，极限可试 8 条）
+video_sources:
+  - path: data/videos/line1.mp4
+    line_id: 1
+    name: "生产线 1"
+    fps: 30               # 目标帧率
+    resolution: [640, 480]  # 分辨率（可选，默认原始分辨率）
+
+  - path: data/videos/line2.mp4
+    line_id: 2
+    name: "生产线 2"
+    fps: 30
+
+  - path: data/videos/line3.mp4
+    line_id: 3
+    name: "生产线 3"
+    fps: 30
+
+  - path: data/videos/line4.mp4
+    line_id: 4
+    name: "生产线 4"
+    fps: 30
+
+  - path: data/videos/line5.mp4
+    line_id: 5
+    name: "生产线 5"
+    fps: 30
+
+  - path: data/videos/line6.mp4
+    line_id: 6
+    name: "生产线 6"
+    fps: 30
+
+# ==================== 队列管理 ====================
+max_input_queue_size: 24    # 输入队列大小（降低内存占用）
+max_output_queue_size: 128  # 输出队列大小
+max_roi_queue_size: 64      # ROI 队列大小
+
+# ==================== 跟踪器配置 ====================
+tracker:
+  type: bytetrack          # ByteTrack（推荐）或 botsort
+  track_thresh: 0.5        # 跟踪阈值
+  track_buffer: 30         # 跟踪缓冲帧数
+  match_thresh: 0.8        # 匹配阈值
+
+# ==================== 输出配置 ====================
+output_dir: outputs/detections
+save_visualizations: false  # 生产环境建议关闭（节省 I/O）
+save_logs: true
+log_level: INFO
+
+# ==================== 性能优化 ====================
+performance:
+  # 显存管理
+  cuda_memory_fraction: 0.85      # 使用 85% 显存上限
+  empty_cache_interval: 100       # 每 100 帧清理显存碎片
+
+  # 数据加载优化
+  pin_memory: true                # 固定内存加速传输
+  num_data_workers: 2             # 数据加载线程数
+  prefetch_factor: 2              # 预加载因子
+
+  # 推理优化
+  enable_amp: false               # 自动混合精度（实验性，可能不稳定）
+  enable_cudnn_benchmark: true    # cuDNN 自动调优
+
+  # 温度保护
+  max_gpu_temp: 85                # 最高 GPU 温度（°C），超过自动降频
+  temp_check_interval: 10         # 温度检查间隔（秒）
+
+# ==================== 监控配置 ====================
+monitoring:
+  enable_prometheus: true         # 启用 Prometheus 监控
+  metrics_port: 8000             # Metrics 端口
+  log_fps_interval: 5            # 每 5 秒打印 FPS
+  log_memory_interval: 30        # 每 30 秒打印显存占用
+
+# ==================== 告警配置 ====================
+alerts:
+  low_fps_threshold: 15          # FPS 低于 15 触发告警
+  high_latency_threshold: 150    # 延迟高于 150ms 触发告警
+  high_memory_threshold: 7.0     # 显存占用高于 7GB 触发告警
+  notification_method: console   # 告警方式：console, email, webhook
+
+# ==================== 降级策略 ====================
+# 当显存或性能不足时的自动降级配置
+fallback:
+  enable: true
+
+  # 显存不足时降级
+  on_oom:
+    - reduce_clip_batch_size: 10    # CLIP batch 降到 10
+    - increase_keyframe_interval: 15 # 关键帧间隔增加到 15
+
+  # FPS 过低时降级
+  on_low_fps:
+    - reduce_num_lines: 4           # 减少到 4 条产线
+    - increase_keyframe_interval: 15
+
+# ==================== 实验性功能 ====================
+experimental:
+  use_torch_compile: false        # PyTorch 2.0 编译（需 PyTorch 2.0+）
+  use_onnx_runtime: false         # 使用 ONNX Runtime（需先导出）
+  dynamic_keyframe: false         # 动态关键帧调整（根据运动量）
+
+# ==================== 备注 ====================
+# 配置说明：
+# 1. 显存占用预估：3 workers × 1.2GB + CLIP 1.5GB + 缓存 0.8GB ≈ 5.8GB
+# 2. 如需支持 8 条产线，将 clip_batch_size 降到 10，keyframe_interval 增加到 15
+# 3. 训练模型时使用 configs/train_yolo_n.yaml（batch=12）
+# 4. 如遇到过热，降低 num_workers 到 2 或使用散热支架
+# 5. 生产环境建议关闭 save_visualizations 节省磁盘 I/O
+
+# 验收标准（6 条产线）：
+# - 单线 FPS: ≥ 18
+# - 总吞吐: ≥ 108 帧/秒
+# - 显存占用: < 6.5 GB
+# - GPU 温度: < 80°C（长期运行）
+# - 稳定性: 24 小时无崩溃
+

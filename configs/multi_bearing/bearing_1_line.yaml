@@ -1,0 +1,18 @@
+﻿# 配置：1条轴承生产线（基准测试）
+
+global:
+  model_path: "C:/Users/Han/PycharmProjects/PythonProject8/runs/train_bearing/bearing_line_20260108_164005/weights/best.pt"
+  device: "cuda:0"
+  conf_threshold: 0.5
+  shared_model: false  # 单条线不需要共享模式
+
+lines:
+  bearing_line_1:
+    id: 1
+    name: "1号轴承生产线"
+    video: "C:/Users/Han/PycharmProjects/PythonProject8/videos/bearing_conveyor_3.mp4"
+    keyframe_interval: 10        # 每N帧检测一次（增大=减少检测频率）
+    detection_display_frames: 45 # 检测框持续显示帧数（30fps下，45帧≈1.5秒）
+    priority: "high"
+    speed: 5.0
+

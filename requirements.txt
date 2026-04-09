@@ -1,0 +1,41 @@
+# ========================================
+# SAM-3 双范式工业视觉系统 - 依赖清单
+# ========================================
+
+# ========== 核心依赖（必需，兼容组合） ==========
+streamlit==1.31.0
+# CPU: pip install torch==2.1.2 torchvision==0.16.2 --index-url https://download.pytorch.org/whl/cpu
+# CUDA 11.8: pip install torch==2.1.2 torchvision==0.16.2 --index-url https://download.pytorch.org/whl/cu118
+# CUDA 12.1: pip install torch==2.1.2 torchvision==0.16.2 --index-url https://download.pytorch.org/whl/cu121
+torch==2.1.2
+torchvision==0.16.2
+numpy>=1.24.0
+opencv-python>=4.8.0
+Pillow>=10.0.0
+modelscope==1.11.0
+transformers==4.37.0
+
+# ========== 可选依赖（增强功能） ==========
+# VLM 智能推荐（需要阿里云 DashScope API Key）
+dashscope>=1.14.0
+
+# Ant Design UI 组件（美化界面）
+streamlit-antd-components>=0.2.0
+
+# 更好看的训练分布图（可选安装，没装也会自动回退到 st.bar_chart）
+matplotlib>=3.7.0
+
+# ========== 安装说明 ==========
+# 1) CPU 全量安装
+#    pip install -r requirements.txt
+#
+# 2) GPU (CUDA 11.8 示例)
+#    pip install torch==2.1.2 torchvision==0.16.2 --index-url https://download.pytorch.org/whl/cu118
+#    pip install -r requirements.txt --no-deps
+#
+# 3) 配置环境变量（启用 VLM 功能）
+#    set DASHSCOPE_API_KEY=sk-your-key-here  (Windows CMD)
+#    $env:DASHSCOPE_API_KEY="sk-your-key-here"  (PowerShell)
+#    export DASHSCOPE_API_KEY=sk-your-key-here  (Linux/Mac)
+#
+# 4) 如需禁用 VLM，可不安装 dashscope。

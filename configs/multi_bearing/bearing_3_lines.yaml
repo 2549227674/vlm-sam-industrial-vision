@@ -1,0 +1,36 @@
+# 配置：3条轴承生产线（极限测试）
+
+global:
+  model_path: "C:/Users/Han/PycharmProjects/PythonProject8/runs/train_bearing/bearing_line_20260108_164005/weights/best.pt"
+  device: "cuda:0"
+  conf_threshold: 0.5
+  shared_model: true  # 启用模型共享
+
+lines:
+  bearing_line_1:
+    id: 1
+    name: "1号轴承生产线（小型）"
+    video: "C:/Users/Han/PycharmProjects/PythonProject8/videos/bearing_conveyor_3.mp4"
+    keyframe_interval: 8
+    detection_display_frames: 45
+    priority: "critical"  # 最重要
+    speed: 5.0
+
+  bearing_line_2:
+    id: 2
+    name: "2号轴承生产线（中型）"
+    video: "C:/Users/Han/PycharmProjects/PythonProject8/videos/bearing_conveyor_3.mp4"
+    keyframe_interval: 8
+    detection_display_frames: 45
+    priority: "high"
+    speed: 7.0
+
+  bearing_line_3:
+    id: 3
+    name: "3号轴承生产线（大型）"
+    video: "C:/Users/Han/PycharmProjects/PythonProject8/videos/bearing_conveyor_3.mp4"
+    keyframe_interval: 10  # 降低检测频率减轻负载
+    detection_display_frames: 40
+    priority: "medium"
+    speed: 10.0
+

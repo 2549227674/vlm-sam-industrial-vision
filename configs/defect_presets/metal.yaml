@@ -1,0 +1,94 @@
+# 金属加工缺陷检测配置
+# 适用场景：冲压件、机加工零件、金属表面检测、铸造件
+
+version: "1.0"
+metadata:
+  name: "金属加工缺陷检测"
+  name_en: "Metal Machining Defect Detection"
+  industry: "metal_machining"
+  author: "System"
+  created_at: "2026-01-08"
+  description: "针对金属加工制造的典型缺陷检测类型"
+
+primary_types:
+  - id: scratch
+    display_name: "划痕"
+    display_name_en: "Scratch"
+    description: "表面线状划伤"
+
+  - id: dent
+    display_name: "凹陷"
+    display_name_en: "Dent"
+    description: "表面局部凹陷"
+
+  - id: burr
+    display_name: "毛刺"
+    display_name_en: "Burr"
+    description: "边缘锐利凸起"
+
+  - id: crack
+    display_name: "裂纹"
+    display_name_en: "Crack"
+    description: "材料开裂"
+
+  - id: corrosion
+    display_name: "腐蚀"
+    display_name_en: "Corrosion"
+    description: "锈蚀、氧化"
+
+  - id: deformation
+    display_name: "变形"
+    display_name_en: "Deformation"
+    description: "弯曲、扭曲、尺寸变形"
+
+  - id: pitting
+    display_name: "麻点"
+    display_name_en: "Pitting"
+    description: "表面点状凹坑"
+
+  - id: contamination
+    display_name: "污染"
+    display_name_en: "Contamination"
+    description: "油污、异物"
+
+  - id: other
+    display_name: "其他"
+    display_name_en: "Other"
+    description: "其他未分类缺陷"
+
+subtypes:
+  - id: surface_like
+    display_name: "表面类"
+    description: "划痕、腐蚀、麻点"
+
+  - id: structural_like
+    display_name: "结构类"
+    description: "变形、裂纹"
+
+  - id: edge_like
+    display_name: "边缘类"
+    description: "毛刺、倒角缺陷"
+
+  - id: other
+    display_name: "其他"
+    description: "其他类型"
+
+prompt_hints:
+  surface: "scratch, dent, crack, corrosion, pitting, rough surface, oxidation"
+  edge: "burr, sharp edge, chamfer defect, edge damage"
+  structural: "deformation, bent, twisted, warped, dimensional deviation"
+
+category_aliases:
+  scratches: scratch
+  dents: dent
+  burrs: burr
+  cracks: crack
+  rust: corrosion
+  bent: deformation
+  warped: deformation
+
+validation:
+  max_categories: 12
+  min_confidence: 0.3
+  require_subtype: false
+

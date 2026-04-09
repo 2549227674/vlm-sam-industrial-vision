@@ -1,0 +1,139 @@
+# ====================
+# 数据集（不上传）
+# ====================
+D070*/
+*轴承*
+*木材*
+*芯片*
+VisA*/
+
+# ====================
+# 模型权重（不上传）
+# ====================
+*.pt
+*.pth
+runs/
+
+# ====================
+# Python 运行时
+# ====================
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.env
+
+# ====================
+# IDE / 编辑器
+# ====================
+.idea/
+.vscode/
+*.iml
+*.iws
+
+# ====================
+# 缓存 / 日志
+# ====================
+*.log
+.pytest_cache/
+.mypy_cache/
+.cache/
+.docker_cache/
+
+# ====================
+# 临时 / 备份文件
+# ====================
+*.zip
+*.tar.gz
+*.tar
+*.rar
+*.7z
+*.jpg
+*.jpeg
+*.png
+!docs/**/*.png
+
+# ====================
+# 系统文件
+# ====================
+.DS_Store
+Thumbs.db
+
+# ====================
+# 本地文档/简历/分析
+# ====================
+简历.md
+简历*.md
+*分析报告*.md
+*Agent框架*.md
+BMAD*
+项目完整结构*.md
+真相大白*.md
+问题已*.md
+各训练参数*.md
+答辩分工*.md
+改进*.md
+GITHUB*.md
+6666.md
+快速*.md
+*.txt
+1/
+test_file.md
+*.log
+
+# ====================
+# 测试/临时脚本
+# ====================
+check_labels.py
+check_training_path.py
+diagnose_multi_bearing_issues.py
+fix_bearing_dataset.py
+final_verification.py
+verify_datasets.py
+test_*.py
+quick_test_import.py
+依赖测试.py
+create_paradigm_f_docs.py
+generate_paradigm_f_docs.py
+
+# ====================
+# docs/ 内部文档（不传）
+# ====================
+docs/FastSAM*
+docs/README-paradigm-c*
+docs/RTX4060*
+docs/complete*
+docs/defense*
+docs/multi-line*
+docs/paradigm-c*
+docs/plan-a*
+docs/real-time*
+docs/remediation*
+docs/test-file*
+docs/*范式*
+docs/*多线*
+docs/*工业监控*
+docs/*实施*
+docs/*训练*
+docs/*范式E*
+docs/*范式F*
+docs/*video-generator*
+docs/*Docker*
+docs/*SAM*
+docs/*RTX*
+docs/QUICK*
+docs/ARCHITECTURE_DIVISION*
+docs/MILESTONE*
+
+# ====================
+# 根目录临时/备份
+# ====================
+app_final.zip
+bearing_core.zip
+temp_vlm_input_bbox.jpg
+paradigm_b/
+experiments/
+阶段一/

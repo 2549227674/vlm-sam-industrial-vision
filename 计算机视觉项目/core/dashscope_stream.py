@@ -16,6 +16,8 @@ from typing import Any
 
 import dashscope
 
+DEFAULT_STREAM_TIMEOUT = 120  # seconds
+
 
 class DashScopeStreamAggregator:
     """DashScope 流式响应聚合器"""
@@ -27,6 +29,7 @@ class DashScopeStreamAggregator:
         api_key: str | None = None,
         extract_reasoning: bool = True,  # ✅ 改为默认 True（QVQ 总是思考）
         debug: bool = False,
+        timeout: int = DEFAULT_STREAM_TIMEOUT,
         **kwargs: Any
     ) -> tuple[str, str]:
         """
@@ -38,6 +41,7 @@ class DashScopeStreamAggregator:
             api_key: DashScope API Key（默认从环境变量读取）
             extract_reasoning: 是否提取思考过程（默认True，QVQ 总是输出思考）
             debug: 是否输出调试日志
+            timeout: 超时时间（秒）
             **kwargs: 额外参数传递给 API
 
         Returns:
@@ -72,8 +76,15 @@ class DashScopeStreamAggregator:
         reasoning_chunks = 0
         answer_chunks = 0
 
-        # 遍历流式响应
+        # 遍历流式响应，增加超时保护
+        import time
+
+        start_ts = time.time()
+
         for chunk in response:
+            if time.time() - start_ts > timeout:
+                raise TimeoutError(f"dashscope stream timeout after {timeout}s")
+
             chunk_count += 1
 
             # 检查响应状态

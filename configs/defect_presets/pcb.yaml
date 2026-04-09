@@ -1,0 +1,108 @@
+# PCB电路板缺陷检测配置
+# 适用场景：PCB裸板、PCBA成品、电子组装质量检测
+
+version: "1.0"
+metadata:
+  name: "PCB电路板缺陷检测"
+  name_en: "PCB Defect Detection"
+  industry: "electronics_pcb"
+  author: "System"
+  created_at: "2026-01-08"
+  description: "针对PCB制造与组装的专业缺陷检测类型"
+
+primary_types:
+  - id: solder_bridge
+    display_name: "焊桥"
+    display_name_en: "Solder Bridge"
+    description: "焊盘间意外的焊料连接"
+
+  - id: short_circuit
+    display_name: "短路"
+    display_name_en: "Short Circuit"
+    description: "不应导通的电气连接"
+
+  - id: open_circuit
+    display_name: "断路"
+    display_name_en: "Open Circuit"
+    description: "应导通的电路断开"
+
+  - id: missing_component
+    display_name: "缺件"
+    display_name_en: "Missing Component"
+    description: "未贴装元器件"
+
+  - id: wrong_component
+    display_name: "错件"
+    display_name_en: "Wrong Component"
+    description: "贴装了错误的元器件"
+
+  - id: cold_solder
+    display_name: "虚焊"
+    display_name_en: "Cold Solder"
+    description: "焊接不充分、焊点不良"
+
+  - id: spur
+    display_name: "毛刺"
+    display_name_en: "Spur"
+    description: "铜箔尖锐凸起"
+
+  - id: mouse_bite
+    display_name: "鼠咬"
+    display_name_en: "Mouse Bite"
+    description: "PCB边缘缺口（钻孔重叠造成）"
+
+  - id: scratch
+    display_name: "划痕"
+    display_name_en: "Scratch"
+    description: "表面划伤"
+
+  - id: contamination
+    display_name: "污染"
+    display_name_en: "Contamination"
+    description: "异物、灰尘、残留物"
+
+  - id: other
+    display_name: "其他"
+    display_name_en: "Other"
+    description: "其他未分类缺陷"
+
+subtypes:
+  - id: missing_like
+    display_name: "缺失类"
+    description: "缺件、断路"
+
+  - id: surface_like
+    display_name: "表面类"
+    description: "划痕、污染、氧化"
+
+  - id: structural_like
+    display_name: "结构类"
+    description: "断裂、变形、鼠咬"
+
+  - id: electrical_like
+    display_name: "电气类"
+    description: "焊桥、短路、虚焊"
+
+  - id: other
+    display_name: "其他"
+    description: "其他类型"
+
+prompt_hints:
+  electrical: "solder bridge, short circuit, open circuit, cold solder, poor soldering"
+  component: "missing component, wrong component, tilted component, offset component, wrong orientation"
+  surface: "scratch, stain, oxidation, contamination, spur, mouse bite, roughness"
+  pcb_specific: "spur, mouse bite, foreign body on pad, solder ball, insufficient solder, excessive solder"
+
+category_aliases:
+  bridge: solder_bridge
+  short: short_circuit
+  open: open_circuit
+  missing: missing_component
+  wrong: wrong_component
+  cold: cold_solder
+
+validation:
+  max_categories: 15
+  min_confidence: 0.3
+  require_subtype: false
+

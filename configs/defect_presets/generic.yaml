@@ -1,0 +1,107 @@
+# 通用缺陷检测配置（默认10类）
+# 适用场景：探索性检测、未知缺陷类型、多行业混合场景
+
+version: "1.0"
+metadata:
+  name: "通用缺陷检测"
+  name_en: "Generic Defect Detection"
+  industry: "generic"
+  author: "System"
+  created_at: "2026-01-08"
+  description: "通用10类缺陷类型，适用于大多数工业视觉检测场景"
+
+# 一级缺陷类型（主类别）
+primary_types:
+  - id: scratch
+    display_name: "划痕"
+    display_name_en: "Scratch"
+    description: "表面线状划伤痕迹"
+
+  - id: crack
+    display_name: "裂纹"
+    display_name_en: "Crack"
+    description: "材料开裂、分叉状裂缝"
+
+  - id: stain
+    display_name: "污渍"
+    display_name_en: "Stain"
+    description: "表面污染、色斑"
+
+  - id: dent
+    display_name: "凹陷"
+    display_name_en: "Dent"
+    description: "表面凹陷、坑洼"
+
+  - id: burr
+    display_name: "毛刺"
+    display_name_en: "Burr"
+    description: "边缘凸起、锯齿状突起"
+
+  - id: chip
+    display_name: "崩缺"
+    display_name_en: "Chip"
+    description: "边缘缺失、碎片"
+
+  - id: discoloration
+    display_name: "变色"
+    display_name_en: "Discoloration"
+    description: "颜色异常、褪色"
+
+  - id: contamination
+    display_name: "污染"
+    display_name_en: "Contamination"
+    description: "异物、杂质、颗粒物"
+
+  - id: corrosion
+    display_name: "腐蚀"
+    display_name_en: "Corrosion"
+    description: "锈蚀、氧化斑点"
+
+  - id: other
+    display_name: "其他"
+    display_name_en: "Other"
+    description: "其他未分类缺陷"
+
+# 二级异常子类型
+subtypes:
+  - id: missing_like
+    display_name: "缺失类"
+    description: "缺少部件、结构缺失"
+
+  - id: surface_like
+    display_name: "表面类"
+    description: "表面划痕、污渍、变色"
+
+  - id: structural_like
+    display_name: "结构类"
+    description: "变形、断裂、弯曲"
+
+  - id: visual_like
+    display_name: "视觉类"
+    description: "颜色缺陷、印刷缺陷"
+
+  - id: other
+    display_name: "其他"
+    description: "其他类型"
+
+# VLM Prompt提示词配置
+prompt_hints:
+  surface: "scratch, crack, dent, hole, stain, contamination/foreign body, roughness"
+  structural: "bent, broken, cut, squeeze, deformation, missing part/component, misplaced/misaligned"
+  visual: "color defect/mismatch, faulty imprint/print defect, mold, burnt/overcooked, oxidation/corrosion"
+
+# 类别映射（容错：VLM可能返回的别名）
+category_aliases:
+  scratches: scratch
+  cracks: crack
+  stains: stain
+  dents: dent
+  burrs: burr
+  chips: chip
+
+# 验证规则
+validation:
+  max_categories: 20
+  min_confidence: 0.3
+  require_subtype: false
+

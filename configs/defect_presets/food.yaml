@@ -1,0 +1,103 @@
+# 食品检测配置
+# 适用场景：烘焙食品、包装食品、农产品、肉类、水果质量检测
+
+version: "1.0"
+metadata:
+  name: "食品质量检测"
+  name_en: "Food Quality Detection"
+  industry: "food"
+  author: "System"
+  created_at: "2026-01-08"
+  description: "针对食品质量检测的典型缺陷类型"
+
+primary_types:
+  - id: mold
+    display_name: "霉变"
+    display_name_en: "Mold"
+    description: "发霉、菌斑"
+
+  - id: foreign_body
+    display_name: "异物"
+    display_name_en: "Foreign Body"
+    description: "头发、虫子、杂质"
+
+  - id: burnt
+    display_name: "烧焦"
+    display_name_en: "Burnt"
+    description: "过度烘烤、烧焦"
+
+  - id: undercooked
+    display_name: "未熟"
+    display_name_en: "Undercooked"
+    description: "烹饪不足"
+
+  - id: crack
+    display_name: "裂纹"
+    display_name_en: "Crack"
+    description: "表面开裂"
+
+  - id: deformation
+    display_name: "变形"
+    display_name_en: "Deformation"
+    description: "形状异常"
+
+  - id: discoloration
+    display_name: "变色"
+    display_name_en: "Discoloration"
+    description: "颜色异常、褪色"
+
+  - id: bruise
+    display_name: "碰伤"
+    display_name_en: "Bruise"
+    description: "碰撞损伤、软化斑点"
+
+  - id: contamination
+    display_name: "污染"
+    display_name_en: "Contamination"
+    description: "污渍、污染物"
+
+  - id: other
+    display_name: "其他"
+    display_name_en: "Other"
+    description: "其他未分类缺陷"
+
+subtypes:
+  - id: quality_like
+    display_name: "品质类"
+    description: "霉变、烧焦、未熟"
+
+  - id: contamination_like
+    display_name: "污染类"
+    description: "异物、污渍"
+
+  - id: structural_like
+    display_name: "结构类"
+    description: "裂纹、变形、碰伤"
+
+  - id: visual_like
+    display_name: "视觉类"
+    description: "变色、色差"
+
+  - id: other
+    display_name: "其他"
+    description: "其他类型"
+
+prompt_hints:
+  quality: "mold, moldy, burnt, overcooked, undercooked, raw, discoloration, spoilage"
+  contamination: "foreign body, insect, hair, dust, dirt, debris, contamination"
+  structural: "crack, broken, deformation, bruise, damaged, misshapen"
+  appearance: "discoloration, color defect, uneven color, fading"
+
+category_aliases:
+  moldy: mold
+  burned: burnt
+  raw: undercooked
+  foreign: foreign_body
+  insect: foreign_body
+  hair: foreign_body
+
+validation:
+  max_categories: 12
+  min_confidence: 0.35
+  require_subtype: false
+

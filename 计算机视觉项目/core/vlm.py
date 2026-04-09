@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import time
+import tempfile
 from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Optional
@@ -77,6 +78,10 @@ def dashscope_ready(key: str) -> bool:
     return bool(key)
 
 
+DEFAULT_NONSTREAM_TIMEOUT = 30  # seconds
+MAX_RETRIES = 2
+
+
 def get_vlm_suggestions(
     image_pil: Image.Image,
     *,
@@ -86,6 +91,7 @@ def get_vlm_suggestions(
     thinking: bool = False,
     api_key: Optional[str] = None,
     dashscope_module=None,
+    timeout: int = DEFAULT_NONSTREAM_TIMEOUT,
 ) -> VlmOutput:
     """调用 VLM 生成候选词/短语与中英文整体描述。
 
@@ -121,8 +127,9 @@ def get_vlm_suggestions(
     dashscope_module.api_key = key
 
     try:
-        temp_path = "temp_vlm_input.jpg"
-        image_pil.save(temp_path)
+        with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+            temp_path = tmp.name
+            image_pil.save(temp_path)
         abs_path = os.path.abspath(temp_path)
 
         # 说明：这里要求模型严格按三行格式输出，便于稳定解析。
@@ -176,6 +183,7 @@ def get_vlm_suggestions(
                 messages=messages,
                 api_key=key,
                 extract_reasoning=True,  # QVQ 总是思考
+                timeout=timeout,
             )
 
             # 记录思考过程统计
@@ -184,22 +192,33 @@ def get_vlm_suggestions(
 
             text = answer_text
         else:
-            # 非 QVQ 模型：使用标准非流式调用
-            response = dashscope_module.MultiModalConversation.call(
-                model=model_name,
-                # Some multimodal models (e.g. Qwen3-VL) support this flag.
-                enable_thinking=bool(thinking),
-                messages=messages,
-            )
+            last_err = None
+            for attempt in range(1, MAX_RETRIES + 1):
+                try:
+                    response = dashscope_module.MultiModalConversation.call(
+                        model=model_name,
+                        # Some multimodal models (e.g. Qwen3-VL) support this flag.
+                        enable_thinking=bool(thinking),
+                        messages=messages,
+                        timeout=timeout,
+                    )
+                    if response.status_code != HTTPStatus.OK:
+                        last_err = f"HTTP {response.status_code}: {getattr(response, 'message', '')}"
+                        continue
 
-            if response.status_code != HTTPStatus.OK:
-                return mock
-
-            content = response.output.choices[0].message.content
-            if isinstance(content, list) and content and isinstance(content[0], dict):
-                text = content[0].get("text", "")
+                    content = response.output.choices[0].message.content
+                    if isinstance(content, list) and content and isinstance(content[0], dict):
+                        text = content[0].get("text", "")
+                    else:
+                        text = str(content)
+                    break
+                except Exception as call_err:
+                    last_err = str(call_err)
+                    if attempt == MAX_RETRIES:
+                        raise
+                    time.sleep(0.3 * attempt)
             else:
-                text = str(content)
+                raise RuntimeError(last_err or "dashscope call failed")
 
         # 解析 VLM 输出
         parsed = _parse_vlm_output(text, max_tags=max_keywords)
@@ -210,6 +229,13 @@ def get_vlm_suggestions(
 
         return parsed
 
-
-    except Exception:
+    except Exception as e:
+        print(f"[VLM] call failed: {e}")
+        mock.raw_text = str(e)
         return mock
+    finally:
+        try:
+            if temp_path and os.path.exists(temp_path):
+                os.remove(temp_path)
+        except Exception:
+            pass

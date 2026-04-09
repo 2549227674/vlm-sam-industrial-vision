@@ -9,6 +9,7 @@ from __future__ import annotations
 现有的 Paradigm A 流程保持不变。
 
 更新以支持 QVQ 系列（仅流式模型）通过 DashScopeStreamAggregator。
+2026-01-08: 支持动态缺陷类别配置（DefectCategoryConfig）。
 """
 
 import json
@@ -22,6 +23,7 @@ from PIL import Image
 if TYPE_CHECKING:
     from core.vlm_model_registry import fallback_model_for_bbox, is_stream_only_model
     from core.dashscope_stream import DashScopeStreamAggregator
+    from core.defect_config import DefectCategoryConfig
 else:
     try:
         from core.vlm_model_registry import fallback_model_for_bbox, is_stream_only_model
@@ -40,6 +42,11 @@ else:
         class DashScopeStreamAggregator:
             def call_and_aggregate(self, *args, **kwargs):
                 return None, ""
+
+    try:
+        from core.defect_config import DefectCategoryConfig
+    except Exception:
+        DefectCategoryConfig = None
 
 
 @dataclass
@@ -145,10 +152,24 @@ def _normalize_anomaly_subtype(v: Any) -> str:
     return s if s in allowed else "other"
 
 
-def parse_vlm_bbox_output(text: str, *, image_w: int, image_h: int, max_boxes: int = 3) -> VlmBBoxOutput:
+def parse_vlm_bbox_output(
+    text: str,
+    *,
+    image_w: int,
+    image_h: int,
+    max_boxes: int = 3,
+    config: Optional[Any] = None
+) -> VlmBBoxOutput:
     """将 VLM 返回的 JSON 文本解析为结构化的 bbox 列表。
 
     虽然我们在 prompt 中要求 VLM 仅输出 JSON，但仍需做稳健的提取与校验以防止格式或解析失败。
+
+    Args:
+        text: VLM返回的原始文本
+        image_w: 图像宽度
+        image_h: 图像高度
+        max_boxes: 最多返回框数
+        config: DefectCategoryConfig实例（可选，用于动态类别验证）
     """
     raw = text or ""
     obj_str = _extract_first_json_object(raw)
@@ -169,10 +190,21 @@ def parse_vlm_bbox_output(text: str, *, image_w: int, image_h: int, max_boxes: i
                 continue
 
             defect_type = str(d.get("defect_type") or d.get("type") or "other").strip().lower()
-            if defect_type not in _DEFECT_TYPES:
-                defect_type = "other"
 
-            anomaly_subtype = _normalize_anomaly_subtype(d.get("anomaly_subtype") or d.get("subtype"))
+            # 使用config验证类别（如果提供）
+            if config is not None:
+                defect_type = config.validate_defect_type(defect_type)
+            else:
+                # 回退到硬编码列表
+                if defect_type not in _DEFECT_TYPES:
+                    defect_type = "other"
+
+            # 使用config验证子类型（如果提供）
+            anomaly_subtype_raw = d.get("anomaly_subtype") or d.get("subtype")
+            if config is not None:
+                anomaly_subtype = config.validate_subtype(anomaly_subtype_raw)
+            else:
+                anomaly_subtype = _normalize_anomaly_subtype(anomaly_subtype_raw)
 
             bbox = _sanitize_bbox_xyxy(d.get("bbox_xyxy"), w=image_w, h=image_h)
             if bbox is None:
@@ -342,11 +374,21 @@ def get_vlm_defect_bboxes(
     api_key: Optional[str] = None,
     dashscope_module=None,
     max_boxes: int = 3,
+    config: Optional[Any] = None,
 ) -> VlmBBoxOutput:
     """通过 DashScope 调用 Qwen-VL（或兼容模型）以获取缺陷 bounding box。
 
     前提：系统中已安装并配置 dashscope（或传入兼容的 dashscope_module）。
     如果未提供 dashscope 或 API key，则返回空结果（仅用于本地调试/回退）。
+
+    Args:
+        image_pil: 待检测图像
+        model_name: VLM模型名称
+        thinking: 是否启用思考模式
+        api_key: DashScope API密钥
+        dashscope_module: DashScope模块实例
+        max_boxes: 最多返回框数
+        config: DefectCategoryConfig实例（可选，用于动态Prompt和类别验证）
     """
     import os
     import time
@@ -367,7 +409,12 @@ def get_vlm_defect_bboxes(
     dashscope_module.api_key = key
 
     w, h = image_pil.size
-    prompt = build_defect_bbox_prompt(image_w=w, image_h=h, max_boxes=max_boxes)
+
+    # 使用config生成Prompt（如果提供），否则使用默认函数
+    if config is not None:
+        prompt = config.build_defect_bbox_prompt(image_w=w, image_h=h, max_boxes=max_boxes)
+    else:
+        prompt = build_defect_bbox_prompt(image_w=w, image_h=h, max_boxes=max_boxes)
 
     def _call_once(name: str) -> VlmBBoxOutput:
         try:
@@ -420,7 +467,7 @@ def get_vlm_defect_bboxes(
                 else:
                     text = str(content)
 
-            return parse_vlm_bbox_output(text, image_w=w, image_h=h, max_boxes=max_boxes)
+            return parse_vlm_bbox_output(text, image_w=w, image_h=h, max_boxes=max_boxes, config=config)
         except Exception as e:
             return VlmBBoxOutput(image_w=w, image_h=h, detections=[], raw_text=str(e))
 
@@ -448,10 +495,21 @@ def get_vlm_defect_bboxes_compare(
     api_key: Optional[str] = None,
     dashscope_module=None,
     max_boxes: int = 3,
+    config: Optional[Any] = None,
 ) -> VlmBBoxOutput:
     """比较正常图（A）与测试图（B），并返回以测试图坐标系（Image B）表示的 bbox 结果。
 
     返回的 bboxes 使用 TEST 图像的像素坐标系统。
+
+    Args:
+        normal_image_pil: 正常参考图像
+        test_image_pil: 待检测测试图像
+        model_name: VLM模型名称
+        thinking: 是否启用思考模式
+        api_key: DashScope API密钥
+        dashscope_module: DashScope模块实例
+        max_boxes: 最多返回框数
+        config: DefectCategoryConfig实例（可选，用于动态Prompt和类别验证）
     """
     import os
     import time
@@ -471,7 +529,12 @@ def get_vlm_defect_bboxes_compare(
     dashscope_module.api_key = key
 
     w, h = test_image_pil.size
-    prompt = build_defect_bbox_prompt_compare(test_image_w=w, test_image_h=h, max_boxes=max_boxes)
+
+    # 使用config生成Prompt（如果提供），否则使用默认函数
+    if config is not None:
+        prompt = config.build_compare_prompt(test_image_w=w, test_image_h=h, max_boxes=max_boxes)
+    else:
+        prompt = build_defect_bbox_prompt_compare(test_image_w=w, test_image_h=h, max_boxes=max_boxes)
 
     def _call_once(name: str) -> VlmBBoxOutput:
         try:
@@ -527,7 +590,7 @@ def get_vlm_defect_bboxes_compare(
                 else:
                     text = str(content)
 
-            return parse_vlm_bbox_output(text, image_w=w, image_h=h, max_boxes=max_boxes)
+            return parse_vlm_bbox_output(text, image_w=w, image_h=h, max_boxes=max_boxes, config=config)
         except Exception as e:
             return VlmBBoxOutput(image_w=w, image_h=h, detections=[], raw_text=str(e))
 
